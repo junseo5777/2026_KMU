@@ -42,33 +42,18 @@ YAML에서 참조하는 PGM 또는 PNG 이미지가 필요합니다.
 
 ## 주요 파일
 
-### 매핑
-
-- [`slam_mapping.launch.py`](launch/slam_mapping.launch.py)는 scan 필터,
-  Cartographer, occupancy grid, 지도 저장 노드를 한 번에 실행합니다.
-- [`parking_2d.lua`](config/parking_2d.lua)는 LiDAR 사용 거리, 지도 해상도,
-  scan matching과 pose graph 최적화 값을 관리합니다.
-- [`auto_map_saver.py`](cartographer_2d_slam/auto_map_saver.py)와
-  [`map_io.py`](cartographer_2d_slam/map_io.py)는 `/map`을 Nav2 형식의
-  YAML/PGM 파일로 저장합니다.
-
-### 로컬라이제이션
-
-- [`localization.launch.py`](launch/localization.launch.py)는 저장된 지도와
-  LiDAR odometry, AMCL을 순서대로 실행합니다.
-- [`lidar_odom_node.py`](cartographer_2d_slam/lidar_odom_node.py)는 LiDAR와
-  선택적으로 IMU를 사용해 `odom → base_link`를 계산합니다.
-- [`lidar_odometry.py`](cartographer_2d_slam/lidar_odometry.py)는 ICP와 2D
-  좌표 변환 계산을 담당하며, 세부 값은
-  [`lidar_odom.yaml`](config/lidar_odom.yaml)에서 설정합니다.
-- [`amcl.yaml`](config/amcl.yaml)은 AMCL의 particle, motion model, LiDAR
-  sensor model을 설정합니다.
-
-### 공통 처리
-
-[`rear_scan_filter.py`](cartographer_2d_slam/rear_scan_filter.py)는 원본
-`/scan`에서 차체에 가려지는 후방 데이터를 제거하고 `/scan_slam`을
-발행합니다. 매핑과 로컬라이제이션에서 동일하게 사용합니다.
+| 파일 | 역할 |
+|---|---|
+| `launch/slam_mapping.launch.py` | Cartographer 매핑 전체 실행 |
+| `launch/localization.launch.py` | map server, LiDAR odometry, AMCL 실행 |
+| `config/parking_2d.lua` | Cartographer 매핑 설정 |
+| `config/lidar_odom.yaml` | LiDAR ICP odometry 설정 |
+| `config/amcl.yaml` | AMCL 설정 |
+| `cartographer_2d_slam/rear_scan_filter.py` | 후방 LiDAR 데이터 제거 |
+| `cartographer_2d_slam/lidar_odom_node.py` | LiDAR와 IMU 기반 local odometry 계산 |
+| `cartographer_2d_slam/lidar_odometry.py` | ICP와 2D 좌표 변환 기능 |
+| `cartographer_2d_slam/auto_map_saver.py` | `/map` 자동 저장 |
+| `cartographer_2d_slam/map_io.py` | OccupancyGrid를 YAML/PGM으로 변환 |
 
 ## 기본 설정
 
