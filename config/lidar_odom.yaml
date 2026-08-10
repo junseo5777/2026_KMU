@@ -1,0 +1,39 @@
+lidar_odom_node:
+  ros__parameters:
+    scan_topic: /scan_slam       # ICP에 사용할 전방 필터 LiDAR topic
+    imu_topic: /imu              # yaw rate를 받을 IMU topic
+    odom_topic: /lidar_odom      # 계산한 nav_msgs/Odometry 출력 topic
+    odom_frame_id: odom          # 누적 상대 이동의 기준 frame
+    base_frame_id: base_link     # 출력할 차량 frame(뒷바퀴 축 중앙)
+    laser_frame_id: laser_frame  # 입력 LaserScan이 가져야 할 frame
+    publish_tf: true             # odom -> base_link TF 발행 여부
+
+    # Gyro z is used as the ICP yaw initial guess, not as an absolute heading.
+    use_imu: true                   # IMU yaw를 ICP 초기값에 보조 사용
+    gyro_bias_z: 0.0                # 사전에 알고 있는 z축 gyro bias(rad/s)
+    gyro_calibration_duration: 2.0  # 시작 정지 상태에서 bias를 측정할 시간(s)
+    imu_yaw_weight: 0.5             # ICP 초기 yaw에서 IMU가 차지하는 비율
+    deskew_scan: true               # scan 취득 중 차량 이동·회전 왜곡 보정
+
+    # Must match the base_link -> laser_frame static transform.
+    lidar_x: 0.410   # base_link에서 LiDAR까지 전방 거리(m)
+    lidar_y: 0.0     # base_link에서 LiDAR까지 좌측 거리(m)
+    lidar_yaw: 0.0   # base_link 기준 LiDAR 장착 회전(rad)
+
+    min_range: 0.1              # 이 거리보다 가까운 점 제거(m)
+    max_range: 20.0              # 이 거리보다 먼 점 제거(m)
+    voxel_size: 0.05             # 같은 voxel의 점을 합칠 격자 크기(m)
+    max_scan_points: 400         # 한 scan에서 ICP에 사용할 최대 점 수
+    max_submap_points: 2400      # rolling local submap의 최대 점 수
+    submap_keyframes: 15         # local submap에 유지할 최근 keyframe 수
+    keyframe_translation: 0.15   # 새 keyframe을 추가할 최소 이동 거리(m)
+    keyframe_rotation: 0.08      # 새 keyframe을 추가할 최소 회전량(rad)
+
+    icp_max_iterations: 20            # scan 한 장당 ICP 최대 반복 횟수
+    max_correspondence_distance: 0.3 # 대응점으로 인정할 최대 거리(m)
+    trim_fraction: 0.80               # 가까운 대응점 중 실제 최적화에 쓸 비율
+    min_correspondences: 30           # ICP 결과를 인정할 최소 대응점 수
+    min_inlier_ratio: 0.30            # 전체 scan 중 대응된 점의 최소 비율
+    max_rmse: 0.15                    # ICP 결과를 인정할 최대 평균 오차(m)
+    max_translation_per_scan: 0.80    # scan 한 장 사이 허용할 최대 이동(m)
+    max_rotation_per_scan: 0.50       # scan 한 장 사이 허용할 최대 회전(rad)
