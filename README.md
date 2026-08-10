@@ -1,4 +1,4 @@
-# Cartographer 2D SLAM
+# 2D SLAM localization
 
 ROS 2 Humble 환경에서 2D LiDAR로 지도를 생성하고, 저장한 지도에서 Nav2
 AMCL로 차량 위치를 추정하는 패키지입니다.
