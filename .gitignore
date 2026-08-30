@@ -7,6 +7,10 @@ log/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
 
 # Test and coverage output
 .coverage
@@ -16,6 +20,16 @@ htmlcov/
 # Generated maps
 *.pbstream
 *.pgm
+maps/*
+!maps/README.md
+!maps/kmu_parking.yaml
+!maps/kmu_parking.pgm
+!maps/parking_map.yaml
+!maps/parking_map.pgm
+!maps/images/
+!maps/images/parking_map_mission.png
+!maps/images/kmu_parking_cartographer.png
+!maps/images/competition_course_layout.png
 
 # Editor and OS files
 .vscode/

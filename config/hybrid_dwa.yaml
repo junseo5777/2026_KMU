@@ -1,0 +1,103 @@
+# Copyright 2026 junseo5777 and kimmc53
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+hybrid_dwa_follower:
+  ros__parameters:
+    # true면 계산 결과를 /erp_writes로 발행한다. 실차 테스트 중에는 AUTO 모드에서만 전달된다.
+    enable_drive: true                      # true면 계산한 명령을 실차 토픽으로 발행
+    map_frame: map                          # 전역 경로와 localization의 기준 프레임
+    base_frame: base_link                   # 차량 기준 프레임(뒷바퀴 축 중앙)
+    path_topic: /global_path                # Hybrid A* 전역 경로 입력 토픽
+    directions_topic: /global_path_directions  # 경로 각 점의 전진(+1)/후진(-1)
+    scan_topic: /scan                       # 로컬 장애물 검사용 LiDAR 토픽
+    ultrasonic_topic: /xycar_ultrasonic     # 후진 안전 정지용 초음파 토픽
+    command_topic: /erp_writes              # 속도·조향 명령 출력 토픽
+    mode_topic: /cmd_vel                    # AUTO/MANUAL 상태 확인용 조이스틱 명령
+    control_rate: 10.0                      # DWA 제어 계산 주기(Hz)
+
+    # 차량 모델·후보 길이·비용(w1~w4)·safe_dist는
+    # cartographer_2d_slam/path_tracking_dwa.py의 PathTrackingDWA에서 설정한다.
+
+    lookahead_distance: 0.7                 # 전진 시 경로 목표점을 볼 거리(m)
+    # 최초 전진→후진은 이 가상 연장선 끝을 룩어헤드가 가리킬 때 전환한다.
+    forward_to_reverse_extension_distance: 0.70 # 1차 후진 전 cusp 전진 연장 길이(m)
+    nearest_search_back: 5                  # 진행 인덱스 뒤쪽 탐색 범위(경로 점)
+    nearest_search_ahead: 80                # 진행 인덱스 앞쪽 탐색 범위(경로 점)
+    max_path_error: 1.20                    # 초과 시 시작점 재획득만 검사하고 추종은 계속함(m)
+    # 목표 pose의 yaw 방향으로 만든 선을 전진하고, 0.7 m 룩어헤드가 끝에 닿으면 2차 후진한다.
+    reverse_retry_extension_distance: 0.90   # 후진 실패 복구 전진용 목표-yaw 직선 길이(m)
+    forward_path_extension_distance: 0.70    # 전진 전용 경로 끝 가상 연장 길이(m)
+    forward_goal_retry_reverse_distance: 0.25 # 목표 헤딩 기준 SSP 후진 경로 길이(m)
+    forward_goal_retry_reverse_timeout_sec: 2.0 # 목표 헤딩 SSP 후진 최대 허용시간(s)
+
+    # 수동으로 경로 시작점에 돌아오면 기존 진행도를 지우고 같은 경로를 다시 탄다.
+    # 위치뿐 아니라 차량 yaw도 맞아야 하므로, 교차하는 다른 구간으로 재결합하지 않는다.
+    enable_start_reacquire: true            # 시작점 복귀 시 기존 경로 재시작 허용
+    start_reacquire_distance: 0.75          # 시작점 재획득 허용 위치 오차(m)
+    start_reacquire_yaw_tolerance_deg: 30.0 # 시작점 재획득 허용 yaw 오차(deg)
+    start_reacquire_min_travel: 1.00        # 재시작 기능 활성화에 필요한 기존 진행거리(m)
+    goal_position_tolerance: 0.15          # 전진 최종 도착 판정 위치 오차(m)
+    reverse_goal_position_tolerance: 0.15  # 후진 최종 도착 판정 위치 오차(m)
+    goal_yaw_tolerance_deg: 10.0             # 목표 도착 판정 yaw 오차(deg)
+    gear_stop_distance: 0.12                # 후진→전진 등 나머지 기어 전환 정지 거리(m)
+    gear_change_dwell_sec: 1.0              # 기어 방향 변경 전 완전 정지 시간(s)
+
+    # 아래 속도는 m/s가 아니라 기존 /erp_writes의 모터 명령 단위다.
+    forward_speed_cmd: 9.0                  # 전진 기본 모터 속도 명령
+    reverse_speed_cmd: 4.0                  # SSP 후진 모터 속도 명령의 크기
+    minimum_speed_cmd: 7.0                  # 전진 추종 중 유지할 최저 속도 명령
+    slowdown_distance: 0.6                # 목표·기어 전환점 감속 시작 거리(m)
+    obstacle_slow_distance: 0.3             # footprint 밖 장애물 감속 시작 거리(m)
+    steer_speed_reduction: 0.3              # 최대 조향 시 기본속도 감소 비율(30%)
+
+    # 바퀴 좌조향(rad 양수)을 모터 음수 명령으로 선형 변환한다.
+    steer_command_limit: 55.0               # 출력 게인 적용 전 조향 명령 절댓값 상한
+    steer_command_sign: -1.0                # 바퀴 조향각과 모터 명령의 부호 변환
+    steer_command_gain: 1.1                # 최종 /erp_writes 조향 명령 배율(최대 ±82.5)
+
+    # 현재 후방 LiDAR는 차체에 가려진다. true는 이 위험을 감수하고 후진을 허용한다.
+    allow_blind_reverse: true               # 후방 감지가 불완전해도 후진 허용
+    require_reverse_ultrasonic: true        # 후진 시 초음파 입력을 안전조건으로 사용
+    reverse_ultrasonic_stop_value: 23.0     # 후방 센서 중 하나가 이 값 이하이면 정지
+    reverse_ultrasonic_timeout_sec: 0.50    # 초음파 입력이 오래되면 후진 정지(s)
+    # 뷰어 배치: 0=Left, 1=Front_left, 2=Front_mid, 3=Front_right,
+    # 4=Right, 5=Back_right, 6=Back_mid, 7=Back_left
+    reverse_ultrasonic_indices: [5, 6, 7]    # 후방 우측·중앙·좌측 센서로 안전거리 검사
+    reverse_ultrasonic_confirm_count: 5      # 후방 센서 중 하나라도 5회 연속 감지 시 후진 정지
+
+    # 전진 후보가 모두 막히면 AUTO에서 한 번만 직선으로 짧게 후진한다.
+    enable_blocked_reverse_recovery: true   # BLOCKED 직선 후진 복구 사용 여부
+    require_auto_for_blocked_recovery: true # AUTO 모드일 때만 복구 동작 허용
+    mode_timeout_sec: 0.50                  # AUTO 모드 명령의 최대 수신 지연(s)
+    blocked_reverse_speed_cmd: 5.0          # 복구 후진 모터 속도 명령의 크기
+    blocked_reverse_distance: 0.20          # 한 번에 허용할 최대 후진 거리(m)
+    blocked_reverse_dwell_sec: 0.50         # 후진 전 정지 대기시간(s)
+    blocked_reverse_timeout_sec: 1.20       # 차가 안 움직일 때 후진 명령 한도(s)
+    blocked_reverse_settle_sec: 0.80        # 후진 후 0 명령 유지시간(s)
+
+    # 하나라도 만족하지 못하면 enable_drive=true여도 속도 0을 발행한다.
+    scan_timeout_sec: 0.50                  # 초과 시 LiDAR 입력 끊김으로 정지(s)
+    # /amcl_pose는 정지 중 주기적으로 나오지 않으므로 map->base_link TF로 생존을 확인한다.
+    localization_tf_timeout_sec: 0.50       # map→base_link TF 최대 지연 허용치(s)
+    # AMCL은 transform_tolerance만큼 미래 시각의 TF를 발행할 수 있다.
+    localization_tf_future_tolerance_sec: 1.50  # AMCL 미래 시각 TF 허용치(s)
+    tf_lookup_timeout_sec: 0.05             # 한 번의 TF 조회 대기 한도(s)
+    path_pair_timeout_sec: 0.75             # 경로와 방향 메시지의 최대 시각 차이(s)
+    obstacle_max_range: 3.0                 # 장애물 검사에 사용할 LiDAR 최대거리(m)
+    scan_stride: 2                          # LiDAR 점을 N개마다 하나씩 사용
+    self_filter_padding: 0.04               # 차량 자체 반사 제거 영역의 추가 여유(m)
+    require_amcl_quality: true              # AMCL 공분산 품질 조건 사용 여부
+    # RViz 2D Pose Estimate의 일반적인 초기 표준편차(약 0.5 m)를 허용한다.
+    max_position_stddev: 0.50               # 허용할 AMCL 위치 표준편차 상한(m)
+    max_yaw_stddev: 0.261799                # 허용할 AMCL yaw 표준편차 상한(rad, 15°)

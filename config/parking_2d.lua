@@ -1,11 +1,28 @@
+-- Copyright 2026 junseo5777 and kimmc53
+--
+-- Licensed under the Apache License, Version 2.0 (the "License");
+-- you may not use this file except in compliance with the License.
+-- You may obtain a copy of the License at
+--
+--     http://www.apache.org/licenses/LICENSE-2.0
+--
+-- Unless required by applicable law or agreed to in writing, software
+-- distributed under the License is distributed on an "AS IS" BASIS,
+-- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-- See the License for the specific language governing permissions and
+-- limitations under the License.
+
 include "map_builder.lua"
 include "trajectory_builder.lua"
 
--- Small Ackermann vehicle, 2D LiDAR-only SLAM, no wheel odometry.
+-- KMU 1:10 vehicle, 2D LiDAR SLAM with continuous LiDAR odometry.
 --
 -- Required TF tree before starting Cartographer:
 --   base_link -> laser_frame
+--             -> base_imu_link (gyro is fused by lidar_odom_node)
 
+-- use_odometry = true 이거 오도메트리 false로 하고 해봐야함.
+-- 전역 pose graph 탐색 수정해봐야함.
 options = {
   map_builder = MAP_BUILDER,
   trajectory_builder = TRAJECTORY_BUILDER,
@@ -18,7 +35,7 @@ options = {
   provide_odom_frame = true,          -- map->odom->base_link TF를 생성
   publish_frame_projected_to_2d = true, -- z/roll/pitch를 제거한 2D pose 발행
   use_pose_extrapolator = true,       -- scan 사이 pose를 시간 기준으로 예측
-  use_odometry = false,               -- 외부 odometry를 사용하지 않음
+  use_odometry = true,                -- 연속 P2P LiDAR odometry 사용
   use_nav_sat = false,                -- GPS를 사용하지 않음
   use_landmarks = false,              -- landmark 측정을 사용하지 않음
 
@@ -33,7 +50,7 @@ options = {
   trajectory_publish_period_sec = 0.1, -- trajectory marker 발행 주기
 
   rangefinder_sampling_ratio = 1.0,   -- LiDAR 데이터를 모두 사용
-  odometry_sampling_ratio = 1.0,      -- odom 사용 시 샘플 비율(현재 미사용)
+  odometry_sampling_ratio = 1.0,      -- P2P LiDAR odometry를 모두 사용
   fixed_frame_pose_sampling_ratio = 1.0, -- GPS 등 고정 pose 샘플 비율
   imu_sampling_ratio = 1.0,           -- IMU 사용 시 샘플 비율(현재 미사용)
   landmarks_sampling_ratio = 1.0,     -- landmark 사용 시 샘플 비율
@@ -41,14 +58,23 @@ options = {
 
 MAP_BUILDER.use_trajectory_builder_2d = true -- 2D SLAM trajectory builder 사용
 
-TRAJECTORY_BUILDER_2D.use_imu_data = false -- mapping에서 IMU를 사용하지 않음
-TRAJECTORY_BUILDER_2D.use_online_correlative_scan_matching = true -- 주변 pose 탐색 활성화
+-- Stock Cartographer IMU input also consumes linear acceleration. Keep it
+-- disabled while the driver reports the wrong gravity sign. Gyro yaw is
+-- instead fused by lidar_odom_node after applying the measured sign fix.
+TRAJECTORY_BUILDER_2D.use_imu_data = false
+-- /lidar_odom supplies the motion prediction, but Ceres-only matching was too
+-- dependent on that prediction when slow motion was underestimated. Allow a
+-- bounded local search: wide enough to recover normal motion, much narrower
+-- in yaw than Cartographer's 20 degree default to avoid unrelated wall matches.
+TRAJECTORY_BUILDER_2D.use_online_correlative_scan_matching = true
+TRAJECTORY_BUILDER_2D.real_time_correlative_scan_matcher.translation_delta_cost_weight = 0.1
+TRAJECTORY_BUILDER_2D.real_time_correlative_scan_matcher.rotation_delta_cost_weight = 0.1
 
 -- The YDLIDAR reports 0.1 m to 16.0 m. Use 6 m for the compact
 -- parking course and increase it only if useful distant returns are observed.
 TRAJECTORY_BUILDER_2D.min_range = 0.1 -- 이 거리보다 가까운 점 제거(m)
-TRAJECTORY_BUILDER_2D.max_range = 6.0 -- 이 거리보다 먼 점 제거(m)
-TRAJECTORY_BUILDER_2D.missing_data_ray_length = 6.0 -- 미검출 beam의 free ray 길이(m)
+TRAJECTORY_BUILDER_2D.max_range = 7.0 -- 이 거리보다 먼 점 제거(m)
+TRAJECTORY_BUILDER_2D.missing_data_ray_length = 7.0 -- 미검출 beam의 free ray 길이(m)
 TRAJECTORY_BUILDER_2D.num_accumulated_range_data = 3 -- 정합 전 누적할 분할 scan 수
 
 TRAJECTORY_BUILDER_2D.submaps.grid_options_2d.resolution = 0.02 -- submap 한 셀 크기(m)

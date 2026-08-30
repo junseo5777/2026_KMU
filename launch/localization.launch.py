@@ -1,5 +1,19 @@
 #!/usr/bin/env python3
 
+# Copyright 2026 junseo5777 and kimmc53
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Localize with LiDAR odometry and Nav2 AMCL on a saved map."""
 
 import os
@@ -27,10 +41,12 @@ from lifecycle_msgs.msg import Transition
 
 BASE_FRAME = 'base_link'
 LIDAR_FRAME = 'laser_frame'
-PACKAGE_NAME = 'cartographer_2d_slam'
+IMU_FRAME = 'base_imu_link'
+MAP_FRAME = 'map'
 
 LIDAR_XYZ = ('0.410', '0.0', '0.04')
 LEVEL_RPY = ('0.0', '0.0', '0.0')
+IMU_XYZ = ('0.075', '0.0', '0.090')
 
 FILTERED_SCAN_TOPIC = '/scan_slam'
 
@@ -111,22 +127,40 @@ def _localization_nodes(context):
             LaunchConfiguration('lidar_yaw'),
         ),
     )
+    imu_static_tf = _static_tf_node(
+        name='base_to_imu_static_tf',
+        child_frame=LaunchConfiguration('imu_frame'),
+        xyz=(
+            LaunchConfiguration('imu_x'),
+            LaunchConfiguration('imu_y'),
+            LaunchConfiguration('imu_z'),
+        ),
+        rpy=(
+            LaunchConfiguration('imu_roll'),
+            LaunchConfiguration('imu_pitch'),
+            LaunchConfiguration('imu_yaw'),
+        ),
+    )
 
     rear_scan_filter_node = Node(
-        package=PACKAGE_NAME,
+        package='cartographer_2d_slam',
         executable='rear_scan_filter',
         name='rear_scan_filter',
         output='screen',
         parameters=[{'use_sim_time': use_sim_time}],
     )
 
-    # AMCL consumes odom -> base_link from scan-to-submap ICP.  The geometry
+    # AMCL consumes odom -> base_link from scan-to-scan ICP.  The geometry
     # overrides below are shared with the static TF to prevent frame mismatch.
     lidar_odom_node = Node(
-        package=PACKAGE_NAME,
+        package='cartographer_2d_slam',
         executable='lidar_odom_node',
         name='lidar_odom_node',
         output='screen',
+        # Ubuntu 22.04 ships a mutually compatible NumPy/SciPy pair. Ignore
+        # user-site Python packages for this process so a user-installed NumPy
+        # cannot silently make the system SciPy ABI/version unsupported.
+        additional_env={'PYTHONNOUSERSITE': '1'},
         parameters=[
             odom_params_filename,
             {
@@ -142,11 +176,11 @@ def _localization_nodes(context):
                 'odom_frame_id': 'odom',
                 'base_frame_id': BASE_FRAME,
                 'laser_frame_id': LIDAR_FRAME,
-                'publish_tf': True,
-                'use_imu': ParameterValue(
-                    LaunchConfiguration('use_imu'),
-                    value_type=bool,
+                'imu_frame_id': ParameterValue(
+                    LaunchConfiguration('imu_frame'),
+                    value_type=str,
                 ),
+                'publish_tf': True,
                 'lidar_x': ParameterValue(
                     LaunchConfiguration('lidar_x'),
                     value_type=float,
@@ -188,6 +222,18 @@ def _localization_nodes(context):
         remappings=[
             ('scan', LaunchConfiguration('scan_topic')),
         ],
+    )
+
+    vehicle_marker_node = Node(
+        package='cartographer_2d_slam',
+        executable='vehicle_marker_publisher',
+        name='vehicle_marker_publisher',
+        output='screen',
+        parameters=[{
+            'use_sim_time': use_sim_time,
+            'pose_topic': '/amcl_pose',
+            'output_frame': MAP_FRAME,
+        }],
     )
 
     # Configure and activate the map server first. AMCL is configured only
@@ -256,6 +302,7 @@ def _localization_nodes(context):
 
     return [
         lidar_static_tf,
+        imu_static_tf,
         rear_scan_filter_node,
         lidar_odom_node,
         configure_map_server,
@@ -266,12 +313,16 @@ def _localization_nodes(context):
         # reaches active, the lifecycle handlers above configure AMCL.
         amcl,
         map_server,
+        vehicle_marker_node,
     ]
 
 
 def generate_launch_description():
     """Build the standard-map AMCL localization launch description."""
-    package_root = get_package_share_directory(PACKAGE_NAME)
+    package_root = get_package_share_directory('cartographer_2d_slam')
+    default_map = os.path.join(
+        package_root, 'maps', 'kmu_parking.yaml'
+    )
     default_params = os.path.join(
         package_root,
         'config',
@@ -286,7 +337,8 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             'map',
-            description='Required path to a Nav2 map YAML file.',
+            default_value=default_map,
+            description='Absolute path to a Nav2 map YAML file.',
         ),
         DeclareLaunchArgument(
             'params_file',
@@ -314,9 +366,9 @@ def generate_launch_description():
             description='Gyroscope topic used to seed LiDAR ICP yaw.',
         ),
         DeclareLaunchArgument(
-            'use_imu',
-            default_value='true',
-            description='Use IMU yaw rate to seed LiDAR ICP.',
+            'imu_frame',
+            default_value=IMU_FRAME,
+            description='Frame ID published by the IMU driver.',
         ),
         DeclareLaunchArgument(
             'lidar_x',
@@ -338,5 +390,11 @@ def generate_launch_description():
             default_value=LEVEL_RPY[2],
             description='LiDAR yaw offset from base_link in radians.',
         ),
+        DeclareLaunchArgument('imu_x', default_value=IMU_XYZ[0]),
+        DeclareLaunchArgument('imu_y', default_value=IMU_XYZ[1]),
+        DeclareLaunchArgument('imu_z', default_value=IMU_XYZ[2]),
+        DeclareLaunchArgument('imu_roll', default_value=LEVEL_RPY[0]),
+        DeclareLaunchArgument('imu_pitch', default_value=LEVEL_RPY[1]),
+        DeclareLaunchArgument('imu_yaw', default_value=LEVEL_RPY[2]),
         OpaqueFunction(function=_localization_nodes),
     ])

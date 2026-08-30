@@ -1,3 +1,17 @@
+# Copyright 2026 junseo5777 and kimmc53
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Periodically save the latest SLAM occupancy grid."""
 
 import os
@@ -13,43 +27,52 @@ from rclpy.qos import QoSProfile
 from rclpy.qos import ReliabilityPolicy
 
 
-DEFAULT_MAP_OUTPUT_FILE = os.path.join(
-    os.path.expanduser('~'),
-    '.ros',
-    'cartographer_2d_slam',
+MAP_TOPIC = '/map'
+MAP_OUTPUT_FILE = os.path.expanduser(
+    '~/.ros/cartographer_2d_slam'
 )
+MAP_SAVE_INTERVAL_SEC = 30.0
+SAVE_ON_FIRST_MAP = True
+SAVE_ON_SHUTDOWN = True
+FREE_THRESH = 0.19
+OCCUPIED_THRESH = 0.65
 
 
 class AutoMapSaver(Node):
     """Save the first, periodic, and final snapshots of the latest map."""
 
     def __init__(self):
+        """Configure the occupancy-grid subscriber and save timer."""
         super().__init__('auto_map_saver')
 
-        self.declare_parameter('map_topic', '/map')
-        self.declare_parameter('output_file', DEFAULT_MAP_OUTPUT_FILE)
-        self.declare_parameter('save_interval_sec', 30.0)
-        self.declare_parameter('save_on_first_map', True)
-        self.declare_parameter('save_on_shutdown', True)
-        self.declare_parameter('free_thresh', 0.25)
-        self.declare_parameter('occupied_thresh', 0.65)
+        self.declare_parameter('map_topic', MAP_TOPIC)
+        self.declare_parameter('output_file', MAP_OUTPUT_FILE)
+        self.declare_parameter(
+            'save_interval_sec',
+            MAP_SAVE_INTERVAL_SEC,
+        )
+        self.declare_parameter('save_on_first_map', SAVE_ON_FIRST_MAP)
+        self.declare_parameter('save_on_shutdown', SAVE_ON_SHUTDOWN)
+        self.declare_parameter('free_thresh', FREE_THRESH)
+        self.declare_parameter('occupied_thresh', OCCUPIED_THRESH)
 
-        self.map_topic = self.get_parameter('map_topic').value
-        self.output_file = self.get_parameter('output_file').value
-        self.save_interval_sec = self.get_parameter(
-            'save_interval_sec'
-        ).value
-        self.save_on_first_map = self.get_parameter(
-            'save_on_first_map'
-        ).value
-        self.save_on_shutdown = self.get_parameter(
-            'save_on_shutdown'
-        ).value
-        self.free_thresh = self.get_parameter('free_thresh').value
-        self.occupied_thresh = self.get_parameter(
-            'occupied_thresh'
-        ).value
-
+        self.map_topic = str(self.get_parameter('map_topic').value)
+        self.output_file = str(self.get_parameter('output_file').value)
+        self.save_interval_sec = float(
+            self.get_parameter('save_interval_sec').value
+        )
+        self.save_on_first_map = bool(
+            self.get_parameter('save_on_first_map').value
+        )
+        self.save_on_shutdown = bool(
+            self.get_parameter('save_on_shutdown').value
+        )
+        self.free_thresh = float(
+            self.get_parameter('free_thresh').value
+        )
+        self.occupied_thresh = float(
+            self.get_parameter('occupied_thresh').value
+        )
         if self.save_interval_sec < 0.0:
             raise ValueError('save_interval_sec must be zero or positive')
 
@@ -70,7 +93,6 @@ class AutoMapSaver(Node):
             self._map_callback,
             map_qos,
         )
-
         if self.save_interval_sec > 0.0:
             self.create_timer(
                 self.save_interval_sec,
@@ -87,12 +109,21 @@ class AutoMapSaver(Node):
             first_map = self._latest_map is None
             self._latest_map = message
             self._map_revision += 1
-
         if first_map and self.save_on_first_map:
             self.save_latest(reason='first map')
 
     def _periodic_save(self):
         self.save_latest(reason='periodic')
+
+    def _save_log(self, level, message):
+        """Log normally, or print after the ROS context has shut down."""
+        if rclpy.ok():
+            getattr(self.get_logger(), level)(message)
+        else:
+            print(
+                f'[{level.upper()}] [auto_map_saver]: {message}',
+                flush=True,
+            )
 
     def save_latest(self, reason, force=False):
         """Write the latest received map if it has changed."""
@@ -103,8 +134,9 @@ class AutoMapSaver(Node):
 
         if map_message is None:
             if force:
-                self.get_logger().warning(
-                    'No /map message was received; nothing was saved'
+                self._save_log(
+                    'warning',
+                    'No /map message was received; nothing was saved',
                 )
             return False
         if already_saved and not force:
@@ -118,7 +150,7 @@ class AutoMapSaver(Node):
                 self.occupied_thresh,
             )
         except (OSError, ValueError) as error:
-            self.get_logger().error(f'Failed to save map: {error}')
+            self._save_log('error', f'Failed to save map: {error}')
             return False
 
         with self._lock:
@@ -126,8 +158,9 @@ class AutoMapSaver(Node):
                 self._saved_revision,
                 map_revision,
             )
-        self.get_logger().info(
-            f'Saved map ({reason}): {yaml_path} and {image_path}'
+        self._save_log(
+            'info',
+            f'Saved map ({reason}): {yaml_path} and {image_path}',
         )
         return True
 

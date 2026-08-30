@@ -1,3 +1,17 @@
+# Copyright 2026 junseo5777 and kimmc53
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 amcl:
   ros__parameters:
     # Initial conservative values based on the Nav2 Humble defaults.
@@ -19,7 +33,9 @@ amcl:
     laser_model_type: likelihood_field  # 지도 장애물까지 거리로 scan 점수 계산
     laser_likelihood_max_dist: 2.0      # 장애물 거리장을 계산할 최대 거리(m)
     laser_min_range: -1.0               # 음수면 LaserScan의 최소 거리 사용
-    laser_max_range: 100.0              # AMCL에서 사용할 LiDAR 최대 거리(m)
+    # Match the range used to build the map. Longer returns have no reliable
+    # occupied endpoints in this occupancy grid and can corrupt scan scores.
+    laser_max_range: 7.0                # AMCL에서 사용할 LiDAR 최대 거리(m)
     max_beams: 100                      # 한 번의 갱신에 균등 선택할 최대 beam 수
     sigma_hit: 0.15                      # 올바른 검출점 거리 오차의 표준편차(m)
     lambda_short: 0.1                   # Beam 모델용 짧은 측정 계수(현재 미사용)

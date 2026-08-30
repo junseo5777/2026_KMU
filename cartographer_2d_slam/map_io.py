@@ -1,3 +1,17 @@
+# Copyright 2026 junseo5777 and kimmc53
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Utilities for saving ROS occupancy grids in the Nav2 map format."""
 
 import json
@@ -49,7 +63,7 @@ def occupancy_grid_to_pgm(
 
     header = (
         'P5\n'
-        '# CREATOR: cartographer_2d_slam auto_map_saver\n'
+        '# CREATOR: kmu auto_map_saver\n'
         f'{width} {height}\n'
         '255\n'
     ).encode('ascii')
