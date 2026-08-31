@@ -67,7 +67,7 @@ DWA_OBSTACLE_Y_PULL = 0.05
 #   dwa 마커   : 후보 경로 13개 x 6점 + 장애물 원 + DWA ROI 박스
 # 주행에 쓰이지 않는 순수 진단 출력이라 연산이 아쉬우면 끈다.
 # 표시 범위는 아래 DWA/객체분류 ROI 설정값과 자동으로 연동된다.
-USE_RVIZ = False
+USE_RVIZ = True
 
 CHANGE_OFF = 25.0         # 차선변경 조향 오프셋
 OVERTAKE_SPEED = 16. # 추월  속도
