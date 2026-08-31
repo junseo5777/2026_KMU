@@ -73,10 +73,7 @@ import numpy as np
 # ══════════════════════════════════════════════════════════════════════
 
 # 배포 가중치. 4클래스 모델이어도 **클래스는 무시하고 박스만** 쓴다.
-MODEL_PATH = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    'tl_yolo11n.pt',
-)
+MODEL_PATH = '~/xycar_ws/src/2026_KMU_BD/kmu/tl_yolo11n.pt'
 
 # 추론 해상도. 640 학습본을 416 으로 추론해도 정확도가 사실상 같고(±1.6%p)
 # 지연이 44.8 → 27.8ms 로 준다(2스레드 실측). veh 모델과 합쳐 10Hz 예산 안.

@@ -78,10 +78,7 @@ def _box_ok(bgr, box):
 #  파라미터
 # ══════════════════════════════════════════════════════════════════════
 
-MODEL_PATH = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    'all_yolo11n.pt',
-)
+MODEL_PATH = '~/xycar_ws/src/2026_KMU_BD/kmu/all_yolo11n.pt'
 
 IMGSZ = 416                # 학습은 640, 배포는 실측 후 결정 (기본 416)
 CONF = 0.35

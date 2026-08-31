@@ -29,31 +29,17 @@ setup(
             + existing_files('config/*.rviz')),
     ],
     install_requires=['setuptools'],
-    package_data={package_name: ['*.pt', 'models/*.tflite']},
+    package_data={package_name: ['*.pt']},
     include_package_data=True,
     zip_safe=True,
     maintainer='alscks',
     maintainer_email='kimmc_22250@dgu.ac.kr',
-    description='KMU autonomous-driving perception and control nodes for ROS 2',
+    description='KMU track-driving perception and DWA control nodes for ROS 2',
     license='Apache-2.0',
-    extras_require={
-        'test': [
-            'pytest',
-        ],
-    },
     entry_points={
         'console_scripts': [
-            'lidar_node = kmu.lidar_node:main',
             'camera_node = kmu.camera_node:main',
             'track_drive = kmu.track_drive:main',
-            'total = kmu.total:main',
-            'teleop = kmu.teleop:main',
-            'camera_test = kmu.camera_test_node:main',
-            'nuclear = kmu.nuclear:main',
-            'steer_test = kmu.steer_calib:main',
-            'visualization = kmu.visualization:main',
-            'yellow_tracer = kmu.yellow_tracer:main',
-            'aruco = kmu.aruco:main'
         ],
     },
 )
