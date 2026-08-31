@@ -15,11 +15,15 @@
 
 ## 전체 주행 구조
 
-```text
-카메라 영상  ──> 차선·신호등·미션 인지 ──┐
-                                          ├─> 상태 머신 ─> 조향·속도 명령
-LiDAR 스캔 ──> 장애물·라바콘·차량 인지 ──┘       │
-                                                   └─ 라바콘 구간: DWA
+```mermaid
+flowchart LR
+    camera["카메라 영상"] --> camera_perception["차선·신호등·미션 인지"]
+    lidar["LiDAR 스캔"] --> lidar_perception["장애물·라바콘·차량 인지"]
+    camera_perception --> state_machine["상태 머신"]
+    lidar_perception --> state_machine
+    state_machine -->|일반 구간| control["조향·속도 명령"]
+    state_machine -->|라바콘 구간| dwa["DWA"]
+    dwa --> control
 ```
 
 카메라 노드는 차선 중심을 기준으로 기본 조향값을 만들고, 신호등과 정적 장애물,
