@@ -1,7 +1,0 @@
-image: "kmu_parking.pgm"
-mode: trinary
-resolution: 0.019999999553
-origin: [-1.3418145752, -2.36354003906, 0]
-negate: 0
-occupied_thresh: 0.65
-free_thresh: 0.19

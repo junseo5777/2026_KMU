@@ -1,37 +1,26 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>cartographer_2d_slam</name>
-  <version>0.2.0</version>
+  <name>kmu</name>
+  <version>0.0.0</version>
   <description>
-    Cartographer mapping, LiDAR odometry, AMCL localization, Hybrid A*
-    planning, and path-guided DWA/SSP following for ROS 2.
+    KMU autonomous-driving perception and control nodes for ROS 2.
   </description>
-  <maintainer email="junseo5777@gmail.com">junseo5777</maintainer>
+  <maintainer email="kimmc_22250@dgu.ac.kr">alscks</maintainer>
   <license>Apache-2.0</license>
-  <url type="repository">
-    https://github.com/junseo5777/ros2-cartographer-acml
-  </url>
 
   <buildtool_depend>ament_python</buildtool_depend>
 
-  <exec_depend>ament_index_python</exec_depend>
-  <exec_depend>cartographer_ros</exec_depend>
-  <exec_depend>diagnostic_msgs</exec_depend>
+  <exec_depend>custom_msgs</exec_depend>
+  <exec_depend>cv_bridge</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
-  <exec_depend>lifecycle_msgs</exec_depend>
-  <exec_depend>nav2_amcl</exec_depend>
-  <exec_depend>nav2_map_server</exec_depend>
-  <exec_depend>nav_msgs</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
-  <exec_depend>python3-scipy</exec_depend>
-  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>python3-opencv</exec_depend>
   <exec_depend>rclpy</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>std_msgs</exec_depend>
-  <exec_depend>tf2_ros</exec_depend>
   <exec_depend>visualization_msgs</exec_depend>
 
   <test_depend>ament_copyright</test_depend>
