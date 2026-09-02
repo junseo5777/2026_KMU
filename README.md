@@ -142,8 +142,8 @@ DWA에 전달하기 직전에는 모든 장애물의 `y`를 0.05 m 줄입니다.
 ```text
 J_q = 0.1 × |ψ_q - π/2| + obstacle_cost
 
-obstacle_cost = w_q / d_q    if d_q < safe_distance
-                0            otherwise
+obstacle_cost = w_q / d_q    (if d_q < safe_distance)
+                0            (otherwise)
 
 J_total = J_middle + J_end
 ```
