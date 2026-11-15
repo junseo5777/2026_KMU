@@ -59,6 +59,4 @@
 <div align="center">
 
 
-`Kookmin University` · `Autonomous Driving` · `AI-Edge Challenge 2026`
-
-</div>
+자세한 내용은 각 브랜치에 있습니다
